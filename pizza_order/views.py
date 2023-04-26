@@ -17,7 +17,8 @@ from django.conf import settings
 import stripe
 from .stripe_utils import stripe_session_create, stripe_customer_create
 from rest_framework.serializers import ValidationError
-from rest_framework.generics import ListAPIView
+from django.dispatch import Signal
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
 
 class PizzaAdminView(viewsets.ModelViewSet):
@@ -124,16 +125,8 @@ class CartView(viewsets.ModelViewSet):
     # queryset =
     lookup_field = 'pk'
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     cart = Cart.objects.filter(user=user)
-    #     print(cart,"caet")
-    #     return cart
-        # serializer = CartSerializer(instance=cart, many=True)
-        # return Response({"data":serializer.data, "message":"Cart data"})
-        # return Response({"data":cart, "message": "cart data"}, status=200)
-
     def create(self, request, *args, **kwargs):
+        my_signal = Signal()
         user = self.request.user
         data = request.data
         cart, _ = Cart.objects.get_or_create(user=user)
@@ -145,32 +138,23 @@ class CartView(viewsets.ModelViewSet):
             cartpizza_data = None
         if cartpizza_data:
             if pizza_data.shop.id == cartpizza_data.shop.id:
-                CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
-                                         shop_id=pizza_data.shop.id)
+                if item_data := CartPizza.objects.filter(pizza=pizza_id_data,cart__user=request.user).all().first():
+                    item_data.quantity += 1
+                    item_data.total_amount += item_data.pizza.price * int(data.get('quantity'))
+                    item_data.save()
+                    cart = Cart.objects.get(user=user)
+                    cart.total_amount += item_data.pizza.price
+                    cart.save()
+                else:
+                    CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
+                                             shop_id=pizza_data.shop.id)
+                    my_signal.send(sender=CartPizza, extra_data = {'quantity':data.get('quantity')})
                 return Response({create})
             return Response({nd})
         else:
             CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
                                      shop_id=pizza_data.shop.id)
             return Response({create})
-        # if cartpizza_data:
-        #     latest_cart_pizza = cartpizza_data.latest()
-        # cartpizza_data = get_object_or_404(CartPizza, id=pizza_id_data)
-        # pizza_data = Pizza.objects.filter(id=pizza_id_data, is_deleted=False).first()
-        # print(pizza_data.id,cartpizza_data.shop.id)
-        # if cartpizza_data:
-        #     if pizza_data.id == cartpizza_data.shop.id:
-        #         print("3")
-        #         CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
-        #                                  shop_id=data.get('shop'))
-        #         return Response({create})
-        #     return Response({nd})
-        # elif pizza_data:
-        #     print("2")
-        # CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
-        #                          shop_id=data.get('shop'))
-        # return Response({create})
-        # return Response({no_pizza})
 
 
 class CartPizzaView(viewsets.ModelViewSet):
@@ -332,11 +316,7 @@ def order_delivered(request):
 
 
 def order_delivered_url(request, id, data):
-    # print(data)
-    # sr = User.objects.filter(id=data).first()
-    # DeliveryBoy.objects.create(delivery_boy=request.user,order_id=id)
     order_data = Order.objects.filter(id=id).first()
-    # print(order_data.user.is_delivery_boy)
     delivery_boy = DeliveryBoy.objects.filter(order_id=id).first()
     if not delivery_boy:
         serializer = DeliveryBoySerializer(data={
@@ -394,10 +374,36 @@ class ShopCreate(viewsets.ModelViewSet):
 
 @login_required
 def shop_owner(request):
-    # user = User.objects.get(id=request.user.id)
-    # shop_data = user.shop_set.filter(owner=user).first()
-    # context = {
-    #     "shop_data":shop_data
-    # }
-    # print(usr.shop_set.all().filter(owner=usr).first())
     return render(request, 's_owner.html')
+
+
+class CartItemView(RetrieveUpdateDestroyAPIView):
+    queryset = CartPizza.objects.all().prefetch_related('cart', 'pizza')
+    serializer_class = CartItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+        cart, _ = Cart.objects.get_or_create(user=user)
+        pizza_id = data.get('pizza')
+        cart = Cart.objects.get(user=user)
+        if item_data := CartPizza.objects.filter(pizza=pizza_id, cart__user=request.user).all().first():
+            if data.get('quantity') == -1:
+                if item_data.quantity == 1:
+                    item_data.delete()
+                    return Response({"message": "No Pizza Left in Cart"})
+                item_data.quantity -= 1
+                item_data.total_amount -= item_data.pizza.price
+                item_data.save()
+                cart.total_amount -= item_data.pizza.price
+                cart.save()
+            else:
+                item_data.quantity += 1
+                item_data.total_amount += item_data.pizza.price
+                item_data.save()
+                cart.total_amount += item_data.pizza.price
+                cart.save()
+        return Response({"message": "No any Pizza"})
+
+

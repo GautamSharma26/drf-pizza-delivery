@@ -53,6 +53,9 @@ class CartSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+
+
+
 class CartPizzaSerializer(serializers.ModelSerializer):
     pizza = serializers.CharField()
     # shop = serializers.CharField()
@@ -69,7 +72,7 @@ class CartPizzaSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(obj.pizza.image.url)
 
     def get_pizza_data(self, obj):
-        return {"price": obj.pizza.price, "size": obj.pizza.size}
+        return {"price": obj.pizza.price, "size": obj.pizza.size, "id": obj.pizza.id}
 
 
 class CartGetSerializer(serializers.ModelSerializer):
@@ -135,4 +138,35 @@ class StatusLogSerializer(serializers.ModelSerializer):
 class StatusSerializerSignal(serializers.ModelSerializer):
     class Meta:
         model = StatusLog
+        fields = "__all__"
+
+
+class CartUserDetailsSerializer(serializers.ModelSerializer):
+    pizza = serializers.CharField()
+    # pizza_data = PizzaSerializer()
+
+    class Meta:
+        model=CartPizza
+        fields = "__all__"
+
+    # def to_representation(self, instance):
+    #     representation = super().to_representation(instance)
+    #     print(instance.quantity,"ins")
+    #     # representation['total_quantity']=0
+    #     representation['total_quantity'] += instance.quantity
+    #     return representation
+
+
+class CartItemPizzaSerializer(serializers.ModelSerializer):
+    # data = CartUserDetailsSerializer(source="cartpizza_set",many=True)
+    # user = serializers.CharField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Cart
+        fields = "__all__"
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartPizza
         fields = "__all__"

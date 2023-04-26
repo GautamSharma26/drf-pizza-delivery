@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'pizza',
     'pizza_order',
     'corsheaders',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist'
 ]
 
 MIDDLEWARE = [

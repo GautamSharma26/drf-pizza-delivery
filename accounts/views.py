@@ -52,6 +52,7 @@ def user_detail(request):
     access_token = AccessToken(token)
     user = User.objects.filter(id=access_token['user_id'])
     serialized_data = UserProfileSerializer(instance=user, many=True)
+    print("sdjkf")
     return Response({"user": serialized_data.data})
 
 

@@ -24,5 +24,6 @@ urlpatterns = [
     path('order_delivered_url/<int:id>/<int:data>/', order_delivered_url, name="order_delivered_url"),
     path('shop/', ShopCreate.as_view({'post': 'create', 'get': 'list'}), name="shop"),
     path('shop/<int:pk>/', ShopCreate.as_view({'patch': 'partial_update', 'delete': 'destroy', 'get':'retrieve'}), name="shop_retrieve"),
-    path('shop-owner/', shop_owner, name='shop_owner')
+    path('shop-owner/', shop_owner, name='shop_owner'),
+    path('cart-item-del/<int:pk>/', CartItemView.as_view())
 ]

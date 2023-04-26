@@ -1,4 +1,8 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from pizza_order.serializer import CartPizzaSerializer, CartGetSerializer, CartUserDetailsSerializer, \
+    CartItemPizzaSerializer
 from .models import User
 
 """
@@ -47,10 +51,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """
     This serializer is using for Profile based functionality.
     """
+    total_items = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_no', 'email', 'is_delivery_boy', 'is_shop_owner']
+        fields = ['id', 'first_name', 'last_name', 'phone_no', 'email', 'is_delivery_boy', 'is_shop_owner',
+                  'total_items']
+
+    def get_total_items(self, obj):
+        item_pizza = 0
+        try:
+            item_quantity = obj.cart_set.all()[0].cartpizza_set.all()
+        except IndexError as e:
+            return 0
+        else:
+            for pizza_quantity in item_quantity:
+                item_pizza += pizza_quantity.quantity
+            return item_pizza
 
 
 class UserChangePasswordSerializer(serializers.Serializer):

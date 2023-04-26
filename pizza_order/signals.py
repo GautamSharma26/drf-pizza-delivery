@@ -1,25 +1,32 @@
 import json
-
 from django.dispatch import receiver
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, pre_delete, pre_save
 from .models import *
 from .serializer import OrderSerializerSignal, StatusSerializerSignal, StatusLogSerializer
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 
-@receiver(post_save, sender=CartPizza)
-def total_amount_add(sender, instance, created, **kwargs):
-    if created:
+# @receiver(post_save, sender=CartPizza)
+# def total_amount_update(sender, instance, created, **kwargs):
+#     if not created:
+#         cart = Cart.objects.get(user=instance.cart.user)
+#         cart.total_amount += instance.pizza.price
+#         cart.save()
+
+
+@receiver(pre_save, sender=CartPizza)
+def total_amount_add(sender, instance, **kwargs):
+    if instance.id is None:
         cart = Cart.objects.get(user=instance.cart.user)
         cart.total_amount += instance.pizza.price * int(instance.quantity)
         cart.save()
         instance.total_amount += instance.pizza.price * int(instance.quantity)
-        instance.save()
 
 
 @receiver(pre_delete, sender=CartPizza)
 def total_amount_exclude(instance, **kwargs):
+    print("dfjj")
     user = instance.cart.user
     cart = Cart.objects.get(user=user)
     cart.total_amount -= instance.pizza.price * instance.quantity
@@ -30,9 +37,6 @@ def total_amount_exclude(instance, **kwargs):
 def order_signal(sender, instance, created, **kwargs):
     if not created:
         channel_layer = get_channel_layer()
-        # data = {}
-        # data['order_idd'] = instance.order_idd
-        # data['status'] = instance.status.status_level
         order = Order.order_details(instance.order_idd)
         logs = StatusLog.objects.filter(order_id=order['id'])
         log_data = StatusLogSerializer(logs, many=True)
@@ -52,7 +56,6 @@ def order_signal(sender, instance, created, **kwargs):
 #         async_to_sync(channel_layer.group_send)(
 #
 #         )
-
 
 
 @receiver(post_save, sender=Order)
