@@ -1,4 +1,4 @@
-# drf-pizza-delivery
+# drf-pizza-delivery/Celery/Channels
 #Channels #Celery #Signals these all are integrated in this project.This repository is part of backend of pizza delivery app. 
 
 Channels:
