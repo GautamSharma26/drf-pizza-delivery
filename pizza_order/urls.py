@@ -6,6 +6,7 @@ from pizza import settings
 urlpatterns = [
     path('', PizzaAdminView.as_view({'get': 'list', 'post': 'create'})),
     path('product_view/<int:pk>', PizzaAdminView.as_view({'delete': 'destroy', 'patch': 'partial_update', 'get': 'retrieve'})),
+    path('pizza-data/<int:pk>/', PizzaDataForAll.as_view({'get':'retrieve'})),
     path('view_product/', PizzaAllView.as_view({'get': 'list'})),
     path('address/', AddressView.as_view({'get': 'list'})),
     path('address_write/<int:pk>', AddressWrite.as_view({'delete': 'destroy', 'patch': 'partial_update'})),

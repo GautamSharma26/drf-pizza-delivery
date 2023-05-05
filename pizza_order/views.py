@@ -5,7 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from .serializer import *
 from .models import *
 from .permission import IsOwner
@@ -17,7 +17,6 @@ from django.conf import settings
 import stripe
 from .stripe_utils import stripe_session_create, stripe_customer_create
 from rest_framework.serializers import ValidationError
-from django.dispatch import Signal
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
 
@@ -65,6 +64,20 @@ class PizzaAdminView(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         super(PizzaAdminView, self).partial_update(request, *args, **kwargs)
         return Response({update})
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            shop_id = kwargs['pk']
+            query = self.queryset.filter(shop=shop_id)
+        except Exception as e:
+            raise ValidationError(e) from e
+        serializer = self.serializer_class(instance=query, many=True)
+        return Response({"data": serializer.data}, status=200)
+
+
+class PizzaDataForAll(viewsets.ModelViewSet):
+    serializer_class = PizzaSerializerView
+    queryset = Pizza.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         try:
@@ -126,7 +139,6 @@ class CartView(viewsets.ModelViewSet):
     lookup_field = 'pk'
 
     def create(self, request, *args, **kwargs):
-        my_signal = Signal()
         user = self.request.user
         data = request.data
         cart, _ = Cart.objects.get_or_create(user=user)
@@ -138,7 +150,7 @@ class CartView(viewsets.ModelViewSet):
             cartpizza_data = None
         if cartpizza_data:
             if pizza_data.shop.id == cartpizza_data.shop.id:
-                if item_data := CartPizza.objects.filter(pizza=pizza_id_data,cart__user=request.user).all().first():
+                if item_data := CartPizza.objects.filter(pizza=pizza_id_data, cart__user=request.user).all().first():
                     item_data.quantity += 1
                     item_data.total_amount += item_data.pizza.price * int(data.get('quantity'))
                     item_data.save()
@@ -148,13 +160,12 @@ class CartView(viewsets.ModelViewSet):
                 else:
                     CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
                                              shop_id=pizza_data.shop.id)
-                    my_signal.send(sender=CartPizza, extra_data = {'quantity':data.get('quantity')})
-                return Response({create})
-            return Response({nd})
+                return Response({create}, status=status.HTTP_201_CREATED)
+            return Response({nd}, status=status.HTTP_406_NOT_ACCEPTABLE)
         else:
             CartPizza.objects.create(pizza_id=data.get('pizza'), cart=cart, quantity=data.get('quantity'),
                                      shop_id=pizza_data.shop.id)
-            return Response({create})
+            return Response({create}, status=status.HTTP_201_CREATED)
 
 
 class CartPizzaView(viewsets.ModelViewSet):
@@ -405,5 +416,3 @@ class CartItemView(RetrieveUpdateDestroyAPIView):
                 cart.total_amount += item_data.pizza.price
                 cart.save()
         return Response({"message": "No any Pizza"})
-
-
