@@ -8,7 +8,7 @@ def stripe_session_create(data):
         payment_method_types=['card'],
         line_items=[data],
         mode='payment',
-        success_url=f"{settings.DOMAIN}product/success",
+        success_url=f"{settings.DOMAIN}user/payment/success",
         cancel_url=f"{settings.DOMAIN}product/cancel",
     )
     return session

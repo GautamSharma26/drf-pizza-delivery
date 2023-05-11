@@ -192,10 +192,12 @@ class OrderCreate(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user = request.user
         data = request.data.copy()
+        print(data)
         address = Address.objects.filter(id=data.get('address'), user=user).first()
         if address:
             cart = Cart.objects.filter(user=user).first()
-            shop_data = cart.cartpizza_set.all().get(cart=cart)
+            print(cart.total_amount)
+            shop_data = cart.cartpizza_set.all().filter(cart=cart).first()
             if cart.total_amount > 0:
                 self.check_object_permissions(request, cart)
                 data['total_amount'] = cart.total_amount
@@ -237,7 +239,7 @@ class OrderCreate(viewsets.ModelViewSet):
                     cart.total_amount = 0
                     cart.save()
                     # invoice_sender(items, cart, user)
-                    return Response({session.url, create})
+                    return Response({session.url})
                 return Response({no_order})
             return Response({no_items})
         return Response({no_address})
@@ -291,6 +293,7 @@ def cancel_payment(request):
 
 @csrf_exempt
 def stripe_webhook(request):
+    print("hello")
     payload = request.body
     sig_header = request.META['HTTP_STRIPE_SIGNATURE']
     event = None

@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+#      - db
+      - redis
+
+  redis:
+    image: redis
+  #  env_file:
+   #   - .env
+    volumes:
+      - redis_data:/data
+
+  celery:
+    build: .
+    command: celery -A pizza worker --beat -l info
+    volumes:
+      - .:/code
+#    env_file:
+ #     - .env
+    depends_on:
+#      - db
+      - redis
+
+volumes:
+#  postgres_data:
+  redis_data:

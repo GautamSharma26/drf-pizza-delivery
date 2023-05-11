@@ -76,12 +76,13 @@ def order_delivery(sender, instance, created, **kwargs):
 def order_accepted_signal(sender, instance, created, **kwargs):
     if not created:
         serializer = OrderSerializerSignal(instance)
+        print(instance,"ins",serializer.data)
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "all_order",
             {
                 "type": "order_accepted",
-                "value": json.dumps([serializer.data])
+                "value": json.dumps(serializer.data)
             }
         )
 

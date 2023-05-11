@@ -4,20 +4,20 @@ from .models import *
 
 class PizzaSerializer(serializers.ModelSerializer):
     # shop = serializers.CharField()
-    pizza_img = serializers.SerializerMethodField("get_pizza_img")
-    pizza_data = serializers.SerializerMethodField()
+    # pizza_img = serializers.SerializerMethodField("get_pizza_img")
+    # pizza_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Pizza
         fields = '__all__'
-    def get_pizza_img(self,obj):
-        # return obj.pizza.image.url
-        request = self.context.get("request")
-        return request.build_absolute_uri(obj.image.url)
+    # def get_pizza_img(self,obj):
+    #     # return obj.pizza.image.url
+    #     request = self.context.get("request")
+    #     return request.build_absolute_uri(obj.image.url)
 
-    def get_pizza_data(self, obj):
-        print(obj.cartpizza_set.all(),"dkf")
-        return obj.cartpizza_set.filter
+    # def get_pizza_data(self, obj):
+    #     print(obj.cartpizza_set.all(),"dkf")
+    #     return obj.cartpizza_set.filter
 
 
 class PizzaSerializerView(serializers.ModelSerializer):
