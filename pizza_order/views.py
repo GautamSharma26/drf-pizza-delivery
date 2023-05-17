@@ -246,6 +246,9 @@ class OrderCreate(viewsets.ModelViewSet):
 
 
 def login_request(request):
+    """
+    This method is used for login purpose when someone use this project from backend only
+    """
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -266,7 +269,7 @@ def login_request(request):
 
 
 def order_status(request, order_idd):
-    order = Order.objects.get(user=request.user, order_idd=order_idd)
+    order = Order.objects.filter(user=request.user, order_idd=order_idd).first()
     if order:
         context = {'order': order}
     else:
@@ -293,7 +296,6 @@ def cancel_payment(request):
 
 @csrf_exempt
 def stripe_webhook(request):
-    print("hello")
     payload = request.body
     sig_header = request.META['HTTP_STRIPE_SIGNATURE']
     event = None
